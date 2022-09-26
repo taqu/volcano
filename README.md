@@ -1,4 +1,4 @@
-# LG3
+# volcano
 
 
 # Generate a `inc` file

@@ -1,0 +1,4 @@
+#ifndef VOLCANORT_CONF_H_
+#define VOLCANORT_CONF_H_
+#cmakedefine VOLCANORT_BACKEND_CPU
+#endif //VOLCANORT_CONF_H_

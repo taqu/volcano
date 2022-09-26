@@ -3,6 +3,13 @@
 /**
  */
 #include <crater.h>
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-#endif //INC_LAVA_H_
+#ifdef __cplusplus
+}
+#endif
+#endif // INC_LAVA_H_
 

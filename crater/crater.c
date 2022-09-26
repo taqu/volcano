@@ -15,14 +15,17 @@
 #ifdef __cplusplus
 namespace
 {
-#    define CRATER_NULL nullptr
 using HANDLE = HMODULE;
 HANDLE instance_ = CRATER_NULL;
 } // namespace
 #else
-#    define CRATER_NULL NULL
 typedef void* HANDLE;
 static HANDLE instance_ = NULL;
+#endif
+
+#ifdef __cplusplus
+extern "C"
+{
 #endif
 
 bool CRATER_API initialize_crater(const char* vulkan_dynamic)
@@ -95,7 +98,7 @@ void CRATER_API vk_enumerate_available_layers(uint32_t* layer_count, char const*
         return;
     }
     for(uint32_t i = 0; i < property_count; ++i) {
-        uint32_t index = -1;
+        uint32_t index = (uint32_t)(-1);
         if(vk_find_string(&index, *layer_count, src_layers, properties[i].layerName)) {
             dst_layers[count] = src_layers[index];
             ++count;
@@ -118,7 +121,7 @@ void CRATER_API vk_enumerate_available_instance_extensions(uint32_t* extension_c
         return;
     }
     for(uint32_t i = 0; i < property_count; ++i) {
-        uint32_t index = -1;
+        uint32_t index = (uint32_t)-1;
         if(vk_find_string(&index, *extension_count, src_extensions, properties[i].extensionName)) {
             dst_extensions[count] = src_extensions[index];
             ++count;
@@ -265,7 +268,7 @@ void CRATER_API vk_choose_physical_devices(
     uint32_t* physical_device_count,
     VkPhysicalDevice* physical_devices,
     int32_t* priorities,
-    PFN_crater_device_features device_features)
+    PFN_crater_device_properties device_properties)
 {
     assert(CRATER_NULL != physical_device_count);
     assert(0 < *physical_device_count);
@@ -276,17 +279,16 @@ void CRATER_API vk_choose_physical_devices(
 #else
 #    define MaxTmpCount (16)
 #endif
-    uint32_t tmp_device_count;
+    uint32_t tmp_device_count = MaxTmpCount;
     VkPhysicalDevice tmp_devices[MaxTmpCount];
     uint32_t count = 0;
-    tmp_device_count = MaxTmpCount;
     VkResult result = vkEnumeratePhysicalDevices(vk_instance, &tmp_device_count, tmp_devices);
     if(VK_SUCCESS != result && VK_INCOMPLETE != result || tmp_device_count <= 0) {
         *physical_device_count = 0;
         return;
     }
     for(uint32_t i = 0; i < tmp_device_count; ++i) {
-        int32_t priority = (CRATER_NULL != device_features) ? device_features(tmp_devices[i]) : 0;
+        int32_t priority = (CRATER_NULL != device_properties) ? device_properties(tmp_devices[i]) : 0;
         if(priority < 0) {
             continue;
         }
@@ -294,3 +296,52 @@ void CRATER_API vk_choose_physical_devices(
     }
     *physical_device_count = count;
 }
+
+VkResult CRATER_API vk_choose_queue_family(
+    uint32_t* queue_family_index,
+    VkQueueFamilyProperties* queue_family_property,
+    VkPhysicalDevice physical_device,
+    PFN_crater_queue_family_properties queue_family_properties)
+{
+    assert(CRATER_NULL != queue_family_index);
+    assert(CRATER_NULL != physical_device);
+#ifdef __cplusplus
+    static const uint32_t MaxTmpCount = 16;
+#else
+#    define MaxTmpCount (16)
+#endif
+    uint32_t tmp_property_count = MaxTmpCount;
+    VkQueueFamilyProperties tmp_properties[MaxTmpCount];
+    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &tmp_property_count, tmp_properties);
+    uint32_t count = 0;
+    int32_t priority = 0;
+    for(uint32_t i = 0; i < tmp_property_count; ++i) {
+        int32_t p;
+        if(CRATER_NULL != queue_family_properties){
+            p = queue_family_properties(&tmp_properties[i]);
+        }else{
+            p = 0;
+            if(VK_QUEUE_GRAPHICS_BIT == (VK_QUEUE_GRAPHICS_BIT & tmp_properties[i].queueFlags)){
+                p += 10;
+            }
+            if(VK_QUEUE_COMPUTE_BIT == (VK_QUEUE_COMPUTE_BIT & tmp_properties[i].queueFlags)){
+                p += 10;
+            }
+            if(VK_QUEUE_TRANSFER_BIT == (VK_QUEUE_TRANSFER_BIT & tmp_properties[i].queueFlags)){
+                p += 10;
+            }
+        }
+        if(priority < p) {
+            ++count;
+            priority = p;
+            *queue_family_index = i;
+            *queue_family_property = tmp_properties[i];
+        }
+    }
+    return 0<count? VK_SUCCESS : VK_ERROR_UNKNOWN;
+}
+
+#ifdef __cplusplus
+}
+#endif
+

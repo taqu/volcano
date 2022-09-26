@@ -4,9 +4,21 @@
  */
 #define VK_NO_PROTOTYPES (1)
 #include <vulkan/vulkan.h>
+#include <stdint.h>
 
 #ifndef __cplusplus
 #include <stdbool.h>
+#endif
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+#ifdef __cplusplus
+#    define CRATER_NULL nullptr
+#else
+#    define CRATER_NULL NULL
 #endif
 
 #define CRATER_VK_EXPORTED_FUNCTION(NAME) extern PFN_##NAME NAME;
@@ -45,7 +57,8 @@ typedef struct crater_device_t
 } crater_device;
 #endif
 
-typedef int32_t (VKAPI_PTR *PFN_crater_device_features)(VkPhysicalDevice physical_device);
+typedef int32_t (VKAPI_PTR *PFN_crater_device_properties)(VkPhysicalDevice physical_device);
+typedef int32_t (VKAPI_PTR *PFN_crater_queue_family_properties)(const VkQueueFamilyProperties* queue_family_properties);
 
 /**
  @brief
@@ -73,6 +86,15 @@ void CRATER_API vk_choose_physical_devices(
     uint32_t* physical_device_count,
     VkPhysicalDevice* physical_devices,
     int32_t* priorities,
-    PFN_crater_device_features device_features);
+    PFN_crater_device_properties device_properties);
+
+VkResult CRATER_API vk_choose_queue_family(
+    uint32_t* queue_family_index,
+    VkQueueFamilyProperties* queue_family_property,
+    VkPhysicalDevice physical_device,
+    PFN_crater_queue_family_properties queue_family_properties);
+#ifdef __cplusplus
+}
+#endif
 #endif //INC_CRATER_H_
 

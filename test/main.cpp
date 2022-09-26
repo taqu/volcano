@@ -30,10 +30,6 @@ int32_t crater_device_features(VkPhysicalDevice physical_device)
     default:
         break;
     }
-
-    uint32_t queue_count = 16;
-    VkQueueFamilyProperties queue[16];
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_count, queue);
     return priority;
 }
 
@@ -98,6 +94,10 @@ int main(void)
     VkPhysicalDevice physical_devices[1];
     int32_t priorities[1];
     vk_choose_physical_devices(&physical_device_count, physical_devices, priorities, crater_device_features);
+
+    uint32_t queue_family_index = 0;
+    VkQueueFamilyProperties queue_family_properties = {};
+    vk_choose_queue_family(&queue_family_index, &queue_family_properties, physical_devices[0], CRATER_NULL);
 
     vk_destroy_debug_utils_message(nullptr);
     vk_destroy_instance(nullptr);
